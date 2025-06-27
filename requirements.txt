@@ -1,0 +1,8 @@
+streamlit
+transformers
+torch
+speechrecognition
+pyaudio
+pandas
+plotly
+
