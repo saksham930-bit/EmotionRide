@@ -1,11 +1,8 @@
 import streamlit as st
 from emotion_detector import detect_emotion
-import speech_recognition as sr
 import pandas as pd
 import time
 import plotly.express as px
-import pyttsx3
-import threading
 
 # ✅ Session states
 if "emotion_log" not in st.session_state:
@@ -56,43 +53,13 @@ def custom_button(text, link):
     </a>
     """, unsafe_allow_html=True)
 
-# 🎤 Voice input
-def record_and_transcribe():
-    recognizer = sr.Recognizer()
-    with sr.Microphone() as source:
-        st.info("🎤 Please speak clearly...")
-        recognizer.adjust_for_ambient_noise(source, duration=1)
-        audio = recognizer.listen(source)
-    st.success("✅ Voice captured.")
-
-    try:
-        return recognizer.recognize_google(audio)
-    except sr.UnknownValueError:
-        st.error("❌ Could not understand.")
-    except sr.RequestError:
-        st.error("⚠️ Speech service error.")
-    return None
-
-# 🗣️ Speak response using threading to avoid runtime error
-def speak(text):
-    def run():
-        engine = pyttsx3.init()
-        engine.say(text)
-        engine.runAndWait()
-
-    threading.Thread(target=run).start()
-
 # 🚀 Page setup
 st.set_page_config(page_title="EmotionRide", layout="centered")
 st.title("🚗 EmotionRide")
-st.subheader("🎙 Speak or Type to Detect Emotion")
+st.subheader("📝 Type to Detect Emotion")
 
 # ✍️ Text input
 user_text = st.text_input("📝 Type your feeling:")
-if st.button("🎙 Speak Now"):
-    result = record_and_transcribe()
-    if result:
-        user_text = result
 
 # 🧠 Emotion detection
 if user_text:
@@ -129,3 +96,33 @@ if user_text:
             "neutral": "https://www.youtube.com/watch?v=jfKfPfyJRdk"
         }
         custom_button("▶️ Play Playlist", links.get(emotion, "#"))
+
+        # 📊 Emotion graph
+        if st.session_state.emotion_log:
+            df = pd.DataFrame(st.session_state.emotion_log)
+            mood_counts = df["emotion"].value_counts().reset_index()
+            mood_counts.columns = ["Emotion", "Count"]
+
+            fig = px.bar(
+                mood_counts,
+                x="Emotion",
+                y="Count",
+                color="Emotion",
+                title="🧠 Mood Frequency This Session",
+                color_discrete_map={
+                    "joy": "#FFD700",
+                    "sadness": "#4FC3F7",
+                    "anger": "#EF5350",
+                    "fear": "#BA68C8",
+                    "neutral": "#90A4AE"
+                }
+            )
+
+            fig.update_layout(
+                plot_bgcolor="#FFFFFF",
+                paper_bgcolor="#FFFFFF",
+                font=dict(color="#000000", size=14)
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
+
